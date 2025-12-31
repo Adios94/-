@@ -4,7 +4,7 @@ import { GameState, FinalResult } from '../types';
 import { MARKETING_OPTIONS } from '../constants';
 import { simulateLaunchLocal } from '../services/gameLogic';
 import { generateGameCover, generatePlayerComments } from '../services/geminiService';
-import { Trophy, Globe, Loader2, X, PieChart, User, ThumbsUp, ThumbsDown, Disc, Rocket, Maximize2, FastForward, Play, TrendingUp, TrendingDown, Star, Bug, Flame } from 'lucide-react';
+import { Trophy, Globe, Loader2, X, PieChart, User, ThumbsUp, ThumbsDown, Disc, Rocket, Maximize2, FastForward, Play, TrendingUp, TrendingDown, Star, Bug, Flame, SkipForward } from 'lucide-react';
 
 interface Comment {
   user: string;
@@ -77,20 +77,23 @@ const ResultsView: React.FC<{ gameState: GameState; onRestart: (profit: number) 
     setCurrentMonth(nextMonthIdx);
     setCurrentHype(prev => Math.max(5, prev * 0.85));
 
-    const commentsPerMonth = Math.ceil(allComments.length / 10);
+    const commentsPerMonth = Math.ceil(allComments.length / 12);
     const startIndex = currentMonth * commentsPerMonth;
     const newComments = allComments.slice(startIndex, startIndex + commentsPerMonth);
     if (newComments.length > 0) setVisibleComments(prev => [...prev, ...newComments]);
 
     if (nextMonthIdx >= 12) {
       setIsAutoPlaying(false);
-      setIsFinalSettlement(true);
+      // Small delay before showing final settlement for impact
+      setTimeout(() => setIsFinalSettlement(true), 1000);
     }
   };
 
   useEffect(() => {
     let timer: any;
-    if (isAutoPlaying && currentMonth < 12) timer = setTimeout(playNextMonth, 500);
+    if (isAutoPlaying && currentMonth < 12) {
+      timer = setTimeout(playNextMonth, 500);
+    }
     return () => clearTimeout(timer);
   }, [isAutoPlaying, currentMonth]);
 
@@ -124,41 +127,53 @@ const ResultsView: React.FC<{ gameState: GameState; onRestart: (profit: number) 
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                    <div className="lg:col-span-3 bg-black/40 p-6 border border-[#2a475e] h-56 relative shadow-inner rounded overflow-hidden">
+                    <div className="lg:col-span-3 bg-black/40 p-6 border border-[#2a475e] h-56 relative shadow-inner rounded overflow-hidden flex flex-col">
                         <div className="absolute top-4 left-6 text-[10px] text-gray-500 font-bold italic">年度销量曲线 (UNITS/MONTH)</div>
-                        {currentMonth === 0 ? (
-                           <div className="h-full flex items-center justify-center gap-6 animate-fade-in">
-                               <button onClick={playNextMonth} className="xp-btn-green px-10 py-4 text-sm font-black flex items-center gap-2 hover:scale-105 transition-transform">
-                                 <Play className="w-5 h-5" /> 开始市场投放
-                               </button>
-                               <button onClick={() => setIsAutoPlaying(true)} className="xp-btn-green px-10 py-4 text-sm font-black flex items-center gap-2 hover:scale-105 transition-transform">
-                                 <FastForward className="w-5 h-5" /> 全速模拟一年
-                               </button>
-                           </div>
-                        ) : (
-                           <div className="flex items-end gap-2 h-full w-full pt-6">
-                               {salesHistory.map((val, i) => (
-                                   <div key={i} className="flex-1 bg-gradient-to-t from-blue-700 to-blue-400 rounded-t-sm transition-all duration-500 relative group min-w-[12px]" style={{ height: `${Math.max(5, (val / Math.max(...salesHistory, 1)) * 100)}%` }}>
-                                       <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-[9px] bg-black border border-blue-400 px-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                                           {val.toLocaleString()}
-                                       </div>
-                                   </div>
-                               ))}
-                               {[...Array(12 - salesHistory.length)].map((_, i) => (
-                                   <div key={i} className="flex-1 h-0.5 bg-gray-800 rounded-full mb-1"></div>
-                               ))}
-                           </div>
-                        )}
-                    </div>
-                    <div className="space-y-4">
-                        <div className="bg-[#16202d] p-4 border border-[#2a475e] rounded text-center shadow-lg">
-                            <div className="text-[9px] text-gray-500 font-black uppercase mb-1">本月口碑</div>
-                            <div className={`text-xl font-black italic ${result!.score > 70 ? 'text-green-400' : 'text-red-400'}`}>{result?.reviewSummary}</div>
+                        
+                        <div className="flex-1 flex items-end gap-2 h-full w-full pt-8">
+                            {salesHistory.map((val, i) => (
+                                <div key={i} className="flex-1 bg-gradient-to-t from-blue-700 to-blue-400 rounded-t-sm transition-all duration-500 relative group min-w-[12px]" style={{ height: `${Math.max(5, (val / Math.max(...salesHistory, 1)) * 100)}%` }}>
+                                    <div className="absolute -top-7 left-1/2 -translate-x-1/2 text-[9px] bg-black border border-blue-400 px-1 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-20">
+                                        {val.toLocaleString()}
+                                    </div>
+                                </div>
+                            ))}
+                            {[...Array(12 - salesHistory.length)].map((_, i) => (
+                                <div key={i} className="flex-1 h-0.5 bg-gray-800 rounded-full mb-1"></div>
+                            ))}
                         </div>
+                    </div>
+                    
+                    <div className="space-y-4">
                         <div className="bg-[#16202d] p-4 border border-[#2a475e] rounded text-center shadow-lg">
                             <div className="text-[9px] text-gray-500 font-black uppercase mb-1">年度周期</div>
                             <div className="text-xl font-black text-blue-300 font-mono italic">MONTH {currentMonth}/12</div>
                         </div>
+
+                        {currentMonth < 12 && (
+                          <div className="flex flex-col gap-2">
+                            <button 
+                                onClick={playNextMonth} 
+                                disabled={isAutoPlaying}
+                                className="xp-btn-green w-full py-2.5 text-xs font-black flex items-center justify-center gap-2 hover:scale-[1.02] transition-transform disabled:opacity-50"
+                            >
+                                <SkipForward className="w-4 h-4" /> 下一月 (NEXT)
+                            </button>
+                            <button 
+                                onClick={() => setIsAutoPlaying(!isAutoPlaying)} 
+                                className={`xp-btn w-full py-2.5 text-xs font-black flex items-center justify-center gap-2 transition-all ${isAutoPlaying ? 'bg-orange-100 border-orange-600 text-orange-800' : ''}`}
+                            >
+                                {isAutoPlaying ? <Loader2 className="w-4 h-4 animate-spin" /> : <FastForward className="w-4 h-4" />}
+                                {isAutoPlaying ? '自动播放中...' : '全速模拟至年末'}
+                            </button>
+                          </div>
+                        )}
+                        
+                        {currentMonth === 12 && !isFinalSettlement && (
+                           <button onClick={() => setIsFinalSettlement(true)} className="xp-btn-green w-full py-3 text-xs font-black animate-pulse">
+                              查看财年终报 (FINAL)
+                           </button>
+                        )}
                     </div>
                 </div>
             </div>
@@ -166,7 +181,7 @@ const ResultsView: React.FC<{ gameState: GameState; onRestart: (profit: number) 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="xp-window overflow-hidden">
                     <div className="xp-title-bar h-7 bg-blue-700 px-3">
-                        <span className="text-[10px] font-bold italic uppercase">大师级成品预览</span>
+                        <span className="text-[10px] font-bold italic uppercase">成品预览</span>
                         <Maximize2 onClick={() => setIsCoverZoomed(true)} className="w-3.5 h-3.5 cursor-pointer" />
                     </div>
                     <div className="p-3 bg-[#ECE9D8]">
