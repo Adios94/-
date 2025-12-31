@@ -12,7 +12,7 @@ interface Comment {
   sentiment: 'pos' | 'neg' | 'neu';
 }
 
-const ResultsView: React.FC<{ gameState: GameState; onRestart: (profit: number) => void }> = ({ gameState, onRestart }) => {
+const ResultsView: React.FC<{ gameState: GameState; onRestart: (profit: number, finalScore: number) => void }> = ({ gameState, onRestart }) => {
   const [result, setResult] = useState<FinalResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
@@ -263,7 +263,7 @@ const ResultsView: React.FC<{ gameState: GameState; onRestart: (profit: number) 
                                 <div className="text-sm font-black text-gray-500 uppercase italic">财年最终净利</div>
                                 <div className="text-4xl font-black italic text-green-700 font-mono tracking-tighter">¥{Math.floor(totalRevenue).toLocaleString()}</div>
                             </div>
-                            <button onClick={() => onRestart(totalRevenue)} className="xp-btn-green w-full py-5 text-2xl font-black shadow-2xl flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-95 transition-all">
+                            <button onClick={() => onRestart(totalRevenue, result?.score || 0)} className="xp-btn-green w-full py-5 text-2xl font-black shadow-2xl flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-95 transition-all">
                                 <Rocket className="w-8 h-8" />
                                 <span className="italic uppercase tracking-tighter">启动下一款爆款项目</span>
                             </button>

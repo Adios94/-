@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { INITIAL_STATE } from './constants';
-import { GameState, GameStage, StaffMember, GameConfig } from './types';
+import { INITIAL_STATE, ACHIEVEMENTS } from './constants';
+import { GameState, GameStage, StaffMember, GameConfig, AppWindow, Achievement } from './types';
 import GameSetup from './components/GameSetup';
 import TeamSelection from './components/TeamSelection';
 import EngineeringSetup from './components/EngineeringSetup';
@@ -11,8 +11,10 @@ import ResultsView from './components/ResultsView';
 import FailureView from './components/FailureView';
 import SystemStats from './components/SystemStats';
 import HistoryView from './components/HistoryView';
+import AchievementsView from './components/AchievementsView';
+import AchievementToast from './components/AchievementToast';
 import { audio } from './services/audioService';
-import { Monitor, Wallet, FolderOpen, Trash2, HelpCircle, X, BookOpen, Terminal, Sparkles, Gamepad2, LogOut, Info, Settings } from 'lucide-react';
+import { Monitor, Wallet, FolderOpen, Trash2, HelpCircle, X, BookOpen, Terminal, Sparkles, Gamepad2, LogOut, Info, Settings, Trophy } from 'lucide-react';
 
 const DesktopIcon: React.FC<{ icon: any, label: string, onClick?: () => void }> = ({ icon: Icon, label, onClick }) => (
   <div 
@@ -32,6 +34,7 @@ const App: React.FC = () => {
   const [gameState, setGameState] = useState<GameState>(INITIAL_STATE);
   const [time, setTime] = useState(new Date());
   const [showStartMenu, setShowStartMenu] = useState(false);
+  const [activeToast, setActiveToast] = useState<Achievement | null>(null);
   const startMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,6 +42,88 @@ const App: React.FC = () => {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  // Achievement Checking Logic
+  useEffect(() => {
+    const newUnlocked = [...gameState.unlockedAchievements];
+    let justUnlocked: Achievement | null = null;
+
+    const unlock = (id: string) => {
+      if (!newUnlocked.includes(id)) {
+        newUnlocked.push(id);
+        justUnlocked = ACHIEVEMENTS.find(a => a.id === id) || null;
+      }
+    };
+
+    // 1. First Hire
+    if (gameState.team.designer || gameState.team.programmer || gameState.team.artist) {
+      unlock('first_hire');
+    }
+
+    // 2. Gold Master
+    if (gameState.progress >= 100) {
+      unlock('gold_master');
+    }
+
+    // 3. Dream Team
+    if (gameState.team.designer?.rarity === 'Legendary' && 
+        gameState.team.programmer?.rarity === 'Legendary' && 
+        gameState.team.artist?.rarity === 'Legendary') {
+      unlock('dream_team');
+    }
+
+    // 4. Triple A
+    if (gameState.stage === GameStage.RELEASE && 
+        gameState.engineering.engine === 'Unreal Engine 5' && 
+        gameState.engineering.graphicsLevel === 'Realistic') {
+      unlock('triple_a');
+    }
+
+    // 5. Rich Kid
+    if (gameState.stage === GameStage.RELEASE && gameState.money > 2000000) {
+      unlock('rich_kid');
+    }
+
+    // 6. Masterpiece (Checked at result screen in logic below normally, but here for score)
+    // Actually results screen sets the score, we check history for results-based ones
+    if (gameState.history.some(h => h.profit > 0 && h.score > 90)) {
+      unlock('masterpiece');
+    }
+
+    // 7. Bug King
+    if (gameState.stage === GameStage.RESULTS && gameState.stats.bugs > 100) {
+      unlock('bug_king');
+    }
+
+    // 8. Serial Producer
+    if (gameState.totalGamesReleased >= 5) {
+      unlock('serial_producer');
+    }
+
+    // 9. Crunch Lord
+    if (gameState.totalCrunchMonths > 12) {
+      unlock('crunch_lord');
+    }
+
+    if (newUnlocked.length > gameState.unlockedAchievements.length) {
+      setGameState(prev => ({ ...prev, unlockedAchievements: newUnlocked }));
+      if (justUnlocked) {
+        setActiveToast(justUnlocked);
+        audio.playSuccess();
+      }
+    }
+  }, [gameState.team, gameState.progress, gameState.stage, gameState.money, gameState.engineering, gameState.totalGamesReleased, gameState.totalCrunchMonths, gameState.history]);
+
+  // Track Crunch Months
+  useEffect(() => {
+    let interval: any;
+    if (gameState.stage === GameStage.DEVELOPMENT && gameState.isCrunching) {
+      interval = setInterval(() => {
+        setGameState(prev => ({ ...prev, totalCrunchMonths: prev.totalCrunchMonths + 1 }));
+      }, 1000); // Development Month Tick is approx 1s in DevPhase
+    }
+    return () => clearInterval(interval);
+  }, [gameState.stage, gameState.isCrunching]);
 
   // Close start menu when clicking outside
   useEffect(() => {
@@ -91,6 +176,7 @@ const App: React.FC = () => {
         <aside className="w-28 p-6 flex flex-col gap-2 flex-shrink-0 z-10">
           <DesktopIcon icon={Monitor} label="我的电脑" onClick={() => updateState({ activeApp: 'MY_COMPUTER' })} />
           <DesktopIcon icon={FolderOpen} label="历史记录" onClick={() => updateState({ activeApp: 'DOCUMENTS' })} />
+          <DesktopIcon icon={Trophy} label="荣誉殿堂" onClick={() => updateState({ activeApp: 'ACHIEVEMENTS' })} />
           <DesktopIcon icon={HelpCircle} label="开发手册" onClick={() => updateState({ activeApp: 'MANUAL' })} />
           <DesktopIcon icon={Terminal} label="内核终端" onClick={() => updateState({ activeApp: 'TERMINAL' })} />
           <div className="mt-auto">
@@ -152,17 +238,20 @@ const App: React.FC = () => {
               <ReleaseView 
                 gameState={gameState} 
                 onUpdateState={updateState}
-                onLaunch={() => updateState({ stage: GameStage.RESULTS })} 
+                onLaunch={() => updateState({ stage: GameStage.RESULTS, totalGamesReleased: gameState.totalGamesReleased + 1 })} 
               />
             )}
             {gameState.stage === GameStage.RESULTS && (
-              <ResultsView gameState={gameState} onRestart={(profit) => {
-                const historyEntry = { title: gameState.config.title, theme: gameState.config.theme, genre: gameState.config.genre, profit };
+              <ResultsView gameState={gameState} onRestart={(profit, finalScore) => {
+                const historyEntry = { title: gameState.config.title, theme: gameState.config.theme, genre: gameState.config.genre, profit, score: finalScore };
                 updateState({ 
                   ...INITIAL_STATE, 
                   money: gameState.money + profit, 
                   history: [...gameState.history, historyEntry], 
-                  stage: GameStage.HIRING 
+                  stage: GameStage.HIRING,
+                  unlockedAchievements: gameState.unlockedAchievements,
+                  totalGamesReleased: gameState.totalGamesReleased,
+                  totalCrunchMonths: gameState.totalCrunchMonths
                 });
               }} />
             )}
@@ -179,6 +268,10 @@ const App: React.FC = () => {
             <HistoryView history={gameState.history} onClose={closeWindow} />
           )}
 
+          {gameState.activeApp === 'ACHIEVEMENTS' && (
+            <AchievementsView unlockedIds={gameState.unlockedAchievements} onClose={closeWindow} />
+          )}
+
           {gameState.activeApp === 'MANUAL' && (
             <div className="absolute inset-0 z-[100] flex items-center justify-center bg-black/30 p-4">
               <div className="xp-window w-full max-w-2xl animate-pop-in">
@@ -191,15 +284,15 @@ const App: React.FC = () => {
                   <div className="space-y-6 text-gray-800">
                     <section>
                       <h3 className="font-bold text-blue-700 mb-1">【第一步：组建核心】</h3>
-                      <p>招募三名核心成员：策划、程序和美术。SSR级别的人才虽然昂贵，但能提升品质上限。</p>
+                      <p>招募三名核心成员：策划、程序和美术。传奇(Legendary)级别的人才虽然昂贵，但能提升品质上限。</p>
                     </section>
                     <section>
                       <h3 className="font-bold text-blue-700 mb-1">【第二步：市场情报】</h3>
                       <p>留意侧边栏的市场流行趋势。匹配年度流行题材将获得巨额热度加成。</p>
                     </section>
                     <section>
-                      <h3 className="font-bold text-blue-700 mb-1">【第三步：研发策略】</h3>
-                      <p>研发周期内可开启“福报模式”。虽然能缩短周期，但会压榨士气并带来更多Bug。</p>
+                      <h3 className="font-bold text-blue-700 mb-1">【第三步：成就与荣誉】</h3>
+                      <p>解锁成就不仅是荣誉，更是你作为金牌制作人的见证。点击桌面上的“荣誉殿堂”查看已达成的目标。</p>
                     </section>
                   </div>
                 </div>
@@ -233,6 +326,14 @@ const App: React.FC = () => {
         </main>
       </div>
       
+      {/* Achievement Toast */}
+      {activeToast && (
+        <AchievementToast 
+          achievement={activeToast} 
+          onClose={() => setActiveToast(null)} 
+        />
+      )}
+
       {/* Start Menu Popup */}
       {showStartMenu && (
         <div ref={startMenuRef} className="fixed bottom-10 left-0 w-72 bg-[#ECE9D8] border-2 border-[#0055EA] rounded-t-lg shadow-2xl z-[1000] overflow-hidden flex flex-col animate-pop-in">
@@ -247,6 +348,7 @@ const App: React.FC = () => {
                  {[
                     { icon: HelpCircle, label: '开发手册', action: () => updateState({ activeApp: 'MANUAL' }) },
                     { icon: Monitor, label: '系统属性', action: () => updateState({ activeApp: 'MY_COMPUTER' }) },
+                    { icon: Trophy, label: '荣誉殿堂', action: () => updateState({ activeApp: 'ACHIEVEMENTS' }) },
                     { icon: Terminal, label: '内核终端', action: () => updateState({ activeApp: 'TERMINAL' }) },
                     { icon: FolderOpen, label: '历史存档', action: () => updateState({ activeApp: 'DOCUMENTS' }) },
                  ].map((item, i) => (
@@ -293,6 +395,7 @@ const App: React.FC = () => {
                {[
                   { id: 'MY_COMPUTER', label: '我的电脑', icon: Monitor },
                   { id: 'DOCUMENTS', label: '历史记录', icon: FolderOpen },
+                  { id: 'ACHIEVEMENTS', label: '荣誉殿堂', icon: Trophy },
                   { id: 'MANUAL', label: '手册', icon: HelpCircle },
                   { id: 'TERMINAL', label: '终端', icon: Terminal },
                ].map((app) => (
@@ -307,7 +410,6 @@ const App: React.FC = () => {
          </div>
          
          <div className="flex-1 flex items-center px-4 h-full pointer-events-none">
-            {/* Logo in center-ish of taskbar */}
             <div className="flex items-center gap-2 opacity-50">
                <Gamepad2 className="w-3.5 h-3.5 text-white" />
                <span className="text-white text-[9px] font-black italic uppercase tracking-tighter">SP XP EDITION</span>

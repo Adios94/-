@@ -1,8 +1,20 @@
 
-import { GameState, GameStage, Role, MarketingOption } from "./types";
+import { GameState, GameStage, Role, MarketingOption, Achievement } from "./types";
 
 export const PLATFORMS = ['Steam', 'PlayStation', 'Xbox', 'Mobile'];
 export const ROLES_ORDER = [Role.DESIGNER, Role.PROGRAMMER, Role.ARTIST];
+
+export const ACHIEVEMENTS: Achievement[] = [
+  { id: 'first_hire', name: '梦开始的地方', description: '成功招募第一位核心成员。', icon: '🤝', requirement: '招募任意员工' },
+  { id: 'gold_master', name: '进厂压盘', description: '成功完成第一款游戏的开发。', icon: '📀', requirement: '项目开发进度达到 100%' },
+  { id: 'masterpiece', name: '年度最佳', description: '发布一款评分超过 90 分的神作。', icon: '🏆', requirement: '游戏评分 > 90' },
+  { id: 'bug_king', name: '育碧精神', description: '发布的项目包含超过 100 个 Bug。', icon: '🪲', requirement: '发售时 Bug 数 > 100' },
+  { id: 'crunch_lord', name: '福报导师', description: '累计在福报模式下工作超过 12 个月。', icon: '🔥', requirement: '累计福报时间 > 12个月' },
+  { id: 'rich_kid', name: '不差钱', description: '在银行余额超过 200 万时发布游戏。', icon: '💰', requirement: '余额 > 2,000,000' },
+  { id: 'dream_team', name: '全明星阵容', description: '团队三名成员均为传奇级别。', icon: '🌟', requirement: '所有员工均为 Legendary 稀有度' },
+  { id: 'triple_a', name: '次世代视界', description: '使用 UE5 和写实保真度发布一款游戏。', icon: '🖥️', requirement: 'UE5 + Realistic 图形' },
+  { id: 'serial_producer', name: '高产似那啥', description: '累计发布 5 款游戏。', icon: '📚', requirement: '累计发布次数 >= 5' },
+];
 
 export const MARKETING_OPTIONS: MarketingOption[] = [
   { id: 'bilibili', name: 'B站头部UP主试玩', cost: 50000, boost: 1.5, icon: '📺', desc: '大幅提升国内核心玩家关注。' },
@@ -32,7 +44,6 @@ export const GENRES = [
   'Sim (模拟经营)'
 ];
 
-// Fix: Moved INITIAL_STATE declaration after its dependencies (THEME_TAGS) to resolve block-scoped variable hoisting error.
 export const INITIAL_STATE: GameState = {
   money: 1000000, 
   stage: GameStage.HIRING,
@@ -65,7 +76,7 @@ export const INITIAL_STATE: GameState = {
   morale: 100,
   progress: 0,
   isCrunching: false,
-  currentTrend: THEME_TAGS[Math.floor(Math.random() * THEME_TAGS.length)], // Set a random initial trend
+  currentTrend: THEME_TAGS[Math.floor(Math.random() * THEME_TAGS.length)],
   stats: {
     quality: 10,
     hype: 10,
@@ -76,4 +87,7 @@ export const INITIAL_STATE: GameState = {
   logs: ["系统启动...", "加载制作人模块...", "资金账户连接成功..."],
   activeApp: 'NONE',
   history: [],
+  unlockedAchievements: [],
+  totalGamesReleased: 0,
+  totalCrunchMonths: 0,
 };

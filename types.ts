@@ -16,7 +16,15 @@ export enum GameStage {
   FAILED = 'FAILED'
 }
 
-export type AppWindow = 'NONE' | 'MY_COMPUTER' | 'DOCUMENTS' | 'MANUAL' | 'TERMINAL';
+export type AppWindow = 'NONE' | 'MY_COMPUTER' | 'DOCUMENTS' | 'MANUAL' | 'TERMINAL' | 'ACHIEVEMENTS';
+
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  requirement: string;
+}
 
 export interface StaffMember {
   id: string;
@@ -97,8 +105,8 @@ export interface GameState {
   monthlyBurnRate: number;
   morale: number; 
   progress: number; 
-  isCrunching: boolean; // NEW: Track if player is in crunch mode
-  currentTrend: string; // NEW: Random trend per session
+  isCrunching: boolean;
+  currentTrend: string;
   stats: {
     quality: number;
     hype: number;
@@ -112,6 +120,9 @@ export interface GameState {
   failureReason?: string;
   activeApp: AppWindow;
   history: any[];
+  unlockedAchievements: string[];
+  totalGamesReleased: number;
+  totalCrunchMonths: number;
 }
 
 export interface FinalResult {
