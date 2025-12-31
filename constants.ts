@@ -16,7 +16,7 @@ export const MARKETING_OPTIONS: MarketingOption[] = [
 export const THEME_TAGS = [
   '修仙', '赛博朋克', '克苏鲁', '三国', '废土', '二次元', 
   '武侠', '恐怖', '恋爱', '机甲', '种田', '开放世界',
-  '丧尸', '宫斗', 'furry', '肉鸽(Roguelike)'
+  '丧尸', '宫斗', 'furry', '肉鸽'
 ];
 
 export const GENRES = [
