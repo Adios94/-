@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>超级制作人模拟器 XP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      body { 
+        font-family: 'Tahoma', 'Segoe UI', 'Noto Sans SC', sans-serif; 
+        background-color: #0055EA;
+        background-image: url('https://images.unsplash.com/photo-1542332213-31f87348057f?q=80&w=2070&auto=format&fit=crop');
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        overflow: hidden;
+      }
+      
+      ::-webkit-scrollbar { width: 16px; height: 16px; }
+      ::-webkit-scrollbar-track { background: #ece9d8; border-left: 1px solid #c8c8c8; }
+      ::-webkit-scrollbar-thumb { 
+        background-color: #d6d6d6; 
+        border: 1px solid #ffffff;
+        box-shadow: inset -1px -1px 2px rgba(0,0,0,0.2), inset 1px 1px 2px rgba(255,255,255,0.8);
+      }
+
+      /* Windows XP Window Styles */
+      .xp-window {
+        background-color: #ECE9D8;
+        border: 3px solid #0055EA;
+        border-radius: 8px 8px 0 0;
+        box-shadow: 4px 4px 12px rgba(0,0,0,0.4);
+        position: relative;
+        padding-bottom: 4px;
+      }
+      .xp-window::after {
+        content: '';
+        position: absolute;
+        inset: -1px;
+        border: 1px solid #000080;
+        pointer-events: none;
+        border-radius: 7px 7px 0 0;
+      }
+      .xp-title-bar {
+        background: linear-gradient(180deg, #0058EE 0%, #3593FF 4%, #2884E4 50%, #124C9A 100%);
+        padding: 4px 8px;
+        border-radius: 5px 5px 0 0;
+        color: white;
+        text-shadow: 1px 1px 1px rgba(0,0,0,0.7);
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 30px;
+        user-select: none;
+      }
+      
+      /* Windows XP Button (Luna) */
+      .xp-btn {
+        background: linear-gradient(180deg, #FFFFFF 0%, #F0F0F0 48%, #E0E0E0 52%, #D0D0D0 100%);
+        border: 1.5px solid #003C74;
+        border-radius: 3px;
+        padding: 4px 14px;
+        color: #000;
+        font-size: 12px;
+        box-shadow: inset 0 1px 1px #fff;
+        cursor: pointer;
+        transition: all 0.05s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .xp-btn:hover:not(:disabled) {
+        border-color: #f2ca5e;
+        box-shadow: inset 0 0 2px #f2ca5e;
+      }
+      .xp-btn:active:not(:disabled) {
+        background: #dadada;
+        box-shadow: inset 1px 1px 2px rgba(0,0,0,0.2);
+        transform: translate(1px, 1px);
+      }
+      .xp-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        filter: grayscale(1);
+      }
+
+      .xp-btn-green {
+        background: linear-gradient(180deg, #8BC864 0%, #68B43B 48%, #449526 52%, #38801F 100%);
+        border: 1.5px solid #326F1B;
+        color: white;
+        text-shadow: 1px 1px 1px rgba(0,0,0,0.5);
+        border-radius: 4px;
+        font-weight: bold;
+      }
+      .xp-btn-green:hover:not(:disabled) {
+        filter: brightness(1.1);
+        border-color: #92e064;
+      }
+
+      .xp-title-btn {
+        width: 21px; height: 21px; border: 1px solid #fff; border-radius: 3px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer;
+      }
+      .xp-title-btn:hover { filter: brightness(1.2); }
+      .xp-title-btn-close { background: linear-gradient(135deg, #e76d52 0%, #b3241c 100%); }
+      .xp-title-btn-util { background: linear-gradient(135deg, #7db3f8 0%, #1546a3 100%); }
+
+      /* Inset borders for inner panels */
+      .xp-inset {
+        background: white;
+        border: 2px solid;
+        border-color: #838383 #e3e3e3 #e3e3e3 #838383;
+      }
+
+      .xp-outset {
+        border: 2px solid;
+        border-color: #ffffff #808080 #808080 #ffffff;
+      }
+
+      .xp-progress-container {
+        height: 22px; background: white; border: 2px solid #838383; padding: 2px;
+        display: flex; gap: 2px; overflow: hidden;
+      }
+      .xp-progress-block {
+        width: 10px; height: 100%;
+        background: linear-gradient(to right, #24D224, #128012);
+        box-shadow: inset 1px 0 1px rgba(255,255,255,0.3);
+      }
+
+      @keyframes pop-in { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+      .animate-pop-in { animation: pop-in 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+
+      .xp-taskbar {
+        background: linear-gradient(180deg, #245edc 0%, #3f8cf3 9%, #245edc 10%, #245edc 90%, #1941a5 100%);
+      }
+
+      .xp-start-btn {
+        background: linear-gradient(135deg, #38801F 0%, #449526 20%, #68B43B 50%, #449526 80%, #326F1B 100%);
+        box-shadow: inset 0px 1px 2px rgba(255,255,255,0.5), 2px 0px 5px rgba(0,0,0,0.3);
+      }
+    </style>
+    <script type="importmap">
+    {
+      "imports": {
+        "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+        "react/": "https://esm.sh/react@^19.2.3/",
+        "react": "https://esm.sh/react@^19.2.3",
+        "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+        "@google/genai": "https://esm.sh/@google/genai@^1.34.0"
+      }
+    }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
