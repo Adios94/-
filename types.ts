@@ -26,6 +26,18 @@ export interface Achievement {
   requirement: string;
 }
 
+export interface MarketEvent {
+  id: string;
+  name: string;
+  description: string;
+  effect: {
+    costMultiplier: number; // 成本系数
+    speedMultiplier: number; // 速度系数
+    salesMultiplier: number; // 销量系数
+    hypeMultiplier: number; // 热度系数
+  };
+}
+
 export interface StaffMember {
   id: string;
   name: string;
@@ -88,10 +100,14 @@ export interface MarketingOption {
   boost: number;
   icon: string;
   desc: string;
+  requiredLevel?: number; // Added: Level requirement
 }
 
 export interface GameState {
   money: number;
+  reputation: number; // Added: Company Reputation
+  companyLevel: number; // Added: Company Level (1-10)
+  activeMarketEvent: MarketEvent | null; // Added: Current Global Event
   stage: GameStage;
   config: GameConfig;
   engineering: EngineeringConfig;
@@ -129,6 +145,7 @@ export interface FinalResult {
   basePotential: number;
   score: number;
   reviewSummary: string;
+  reputationChange: number; // Added
   achievement: {
     name: string;
     description: string;

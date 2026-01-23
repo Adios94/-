@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { INITIAL_STATE, ACHIEVEMENTS } from './constants';
+import { INITIAL_STATE, ACHIEVEMENTS, MARKET_EVENTS, THEME_TAGS } from './constants';
 import { GameState, GameStage, StaffMember, GameConfig, AppWindow, Achievement } from './types';
 import GameSetup from './components/GameSetup';
 import TeamSelection from './components/TeamSelection';
@@ -14,7 +14,7 @@ import HistoryView from './components/HistoryView';
 import AchievementsView from './components/AchievementsView';
 import AchievementToast from './components/AchievementToast';
 import { audio } from './services/audioService';
-import { Monitor, Wallet, FolderOpen, Trash2, HelpCircle, X, BookOpen, Terminal, Sparkles, Gamepad2, LogOut, Info, Settings, Trophy } from 'lucide-react';
+import { Monitor, Wallet, FolderOpen, Trash2, HelpCircle, X, BookOpen, Terminal, Sparkles, Gamepad2, LogOut, Info, Settings, Trophy, Globe, Briefcase } from 'lucide-react';
 
 const DesktopIcon: React.FC<{ icon: any, label: string, onClick?: () => void }> = ({ icon: Icon, label, onClick }) => (
   <div 
@@ -105,6 +105,11 @@ const App: React.FC = () => {
       unlock('crunch_lord');
     }
 
+    // 10. IPO
+    if (gameState.companyLevel >= 10) {
+      unlock('ipo');
+    }
+
     if (newUnlocked.length > gameState.unlockedAchievements.length) {
       setGameState(prev => ({ ...prev, unlockedAchievements: newUnlocked }));
       if (justUnlocked) {
@@ -112,7 +117,7 @@ const App: React.FC = () => {
         audio.playSuccess();
       }
     }
-  }, [gameState.team, gameState.progress, gameState.stage, gameState.money, gameState.engineering, gameState.totalGamesReleased, gameState.totalCrunchMonths, gameState.history]);
+  }, [gameState.team, gameState.progress, gameState.stage, gameState.money, gameState.engineering, gameState.totalGamesReleased, gameState.totalCrunchMonths, gameState.history, gameState.companyLevel]);
 
   // Track Crunch Months
   useEffect(() => {
@@ -140,11 +145,34 @@ const App: React.FC = () => {
     setGameState(prev => ({ ...prev, ...updates }));
   }, []);
 
-  const handleRestart = () => {
+  const handleHardReset = () => {
     audio.playGlitch();
-    if(confirm("确定要重置所有系统数据并重启职业生涯吗？")) {
+    if(confirm("确定要出售公司并重新开始职业生涯吗？所有积累将被清空。")) {
       window.location.reload();
     }
+  };
+
+  const startNewProject = (profit: number, score: number, repChange: number) => {
+    const newReputation = Math.max(0, gameState.reputation + repChange);
+    const newLevel = Math.min(10, Math.floor(newReputation / 100) + 1);
+    const marketEvent = MARKET_EVENTS[Math.floor(Math.random() * MARKET_EVENTS.length)];
+    const historyEntry = { title: gameState.config.title, theme: gameState.config.theme, genre: gameState.config.genre, profit, score };
+    
+    setGameState(prev => ({
+        ...INITIAL_STATE,
+        money: prev.money + profit,
+        history: [...prev.history, historyEntry],
+        unlockedAchievements: prev.unlockedAchievements,
+        totalGamesReleased: prev.totalGamesReleased,
+        totalCrunchMonths: prev.totalCrunchMonths,
+        team: prev.team, // Keep the staff
+        reputation: newReputation,
+        companyLevel: newLevel,
+        activeMarketEvent: marketEvent,
+        stage: GameStage.SETUP, // Skip Hiring if we keep staff, go to Setup. Or go to hiring to add more? Let's go to Setup but allow going back to Hiring manually.
+        currentTrend: THEME_TAGS[Math.floor(Math.random() * THEME_TAGS.length)], // New trend
+        logs: [`[系统] 公司等级: Lv.${newLevel}`, `[市场] 当前环境: ${marketEvent.name} - ${marketEvent.description}`]
+    }));
   };
 
   const closeWindow = () => {
@@ -180,7 +208,7 @@ const App: React.FC = () => {
           <DesktopIcon icon={HelpCircle} label="开发手册" onClick={() => updateState({ activeApp: 'MANUAL' })} />
           <DesktopIcon icon={Terminal} label="内核终端" onClick={() => updateState({ activeApp: 'TERMINAL' })} />
           <div className="mt-auto">
-            <DesktopIcon icon={Trash2} label="回收站" onClick={handleRestart} />
+            <DesktopIcon icon={Trash2} label="回收站" onClick={handleHardReset} />
           </div>
         </aside>
 
@@ -204,6 +232,7 @@ const App: React.FC = () => {
             {gameState.stage === GameStage.SETUP && (
               <GameSetup 
                 currentTrend={gameState.currentTrend}
+                companyLevel={gameState.companyLevel}
                 onComplete={(config) => {
                   audio.playClick();
                   updateState({ config, stage: GameStage.ENGINEERING, logs: [...gameState.logs, "策划案初稿已确立，进入技术评审。"] });
@@ -242,18 +271,7 @@ const App: React.FC = () => {
               />
             )}
             {gameState.stage === GameStage.RESULTS && (
-              <ResultsView gameState={gameState} onRestart={(profit, finalScore) => {
-                const historyEntry = { title: gameState.config.title, theme: gameState.config.theme, genre: gameState.config.genre, profit, score: finalScore };
-                updateState({ 
-                  ...INITIAL_STATE, 
-                  money: gameState.money + profit, 
-                  history: [...gameState.history, historyEntry], 
-                  stage: GameStage.HIRING,
-                  unlockedAchievements: gameState.unlockedAchievements,
-                  totalGamesReleased: gameState.totalGamesReleased,
-                  totalCrunchMonths: gameState.totalCrunchMonths
-                });
-              }} />
+              <ResultsView gameState={gameState} onNextProject={startNewProject} onHardReset={handleHardReset} />
             )}
             {gameState.stage === GameStage.FAILED && (
               <FailureView gameState={gameState} onRestart={() => window.location.reload()} />
@@ -283,6 +301,10 @@ const App: React.FC = () => {
                   <h2 className="text-xl text-blue-800 border-b-2 border-blue-100 pb-2 mb-4 font-sans font-black uppercase">超级制作人入门指南</h2>
                   <div className="space-y-6 text-gray-800">
                     <section>
+                      <h3 className="font-bold text-blue-700 mb-1">【公司运营】</h3>
+                      <p>本作支持连续经营模式。完成项目后选择“立项新作”保留资金和员工。声望（Reputation）提升公司等级，解锁高级引擎和宣发渠道。</p>
+                    </section>
+                    <section>
                       <h3 className="font-bold text-blue-700 mb-1">【第一步：组建核心】</h3>
                       <p>招募三名核心成员：策划、程序和美术。传奇(Legendary)级别的人才虽然昂贵，但能提升品质上限。</p>
                     </section>
@@ -310,10 +332,9 @@ const App: React.FC = () => {
                 <div className="bg-black p-6 h-64 font-mono text-green-500 text-xs overflow-y-auto custom-terminal">
                    <div className="mb-1 text-green-300">Super Producer OS [Version 5.1.2600]</div>
                    <div className="mb-4 text-green-300">(C) Copyright 1985-2001 Microsoft Corp.</div>
-                   <div>C:\PRODUCER> init_ai_core.exe</div>
-                   <div className="text-white">[SYSTEM]: KERNEL_READY</div>
-                   <div className="text-white">[SYSTEM]: API_CONNECTION_STABLE</div>
-                   <div className="text-white">[SYSTEM]: RUNNING_GEMINI_PRO_CORES... OK</div>
+                   <div>C:\PRODUCER> check_market_status</div>
+                   <div className="text-white">[SYSTEM]: MARKET_EVENT: {gameState.activeMarketEvent?.name || 'N/A'}</div>
+                   <div className="text-white">[SYSTEM]: REP_LEVEL: {gameState.companyLevel}</div>
                    <div className="mt-4 flex gap-2 items-center">
                       <span className="animate-pulse">{'>'}</span>
                       <span className="bg-green-500 text-black px-1 font-bold">Awaiting_Input_</span>
@@ -367,10 +388,10 @@ const App: React.FC = () => {
               </div>
            </div>
            <div className="bg-[#D3E5FA] p-2 flex justify-end gap-2 border-t border-[#A6C8F0]">
-              <button onClick={handleRestart} className="flex items-center gap-1 text-[10px] font-black text-blue-900 hover:text-red-600">
+              <button onClick={handleHardReset} className="flex items-center gap-1 text-[10px] font-black text-blue-900 hover:text-red-600">
                  <LogOut className="w-3 h-3" /> 注销(L)
               </button>
-              <button onClick={handleRestart} className="flex items-center gap-1 text-[10px] font-black text-blue-900 hover:text-red-600">
+              <button onClick={handleHardReset} className="flex items-center gap-1 text-[10px] font-black text-blue-900 hover:text-red-600">
                  <Trash2 className="w-3 h-3" /> 重启(R)
               </button>
            </div>
@@ -410,9 +431,15 @@ const App: React.FC = () => {
          </div>
          
          <div className="flex-1 flex items-center px-4 h-full pointer-events-none">
-            <div className="flex items-center gap-2 opacity-50">
-               <Gamepad2 className="w-3.5 h-3.5 text-white" />
-               <span className="text-white text-[9px] font-black italic uppercase tracking-tighter">SP XP EDITION</span>
+            <div className="flex items-center gap-4 opacity-70">
+               <div className="flex items-center gap-1">
+                  <Globe className="w-3.5 h-3.5 text-white" />
+                  <span className="text-white text-[9px] font-black italic uppercase tracking-tighter">{gameState.activeMarketEvent?.name}</span>
+               </div>
+               <div className="flex items-center gap-1">
+                  <Briefcase className="w-3.5 h-3.5 text-white" />
+                  <span className="text-white text-[9px] font-black italic uppercase tracking-tighter">LV.{gameState.companyLevel}</span>
+               </div>
             </div>
          </div>
 

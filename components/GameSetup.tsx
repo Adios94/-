@@ -1,17 +1,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { GameConfig } from '../types';
-import { PLATFORMS, THEME_TAGS, GENRES } from '../constants';
+import { PLATFORMS, THEME_TAGS, GENRES, LEVEL_CONFIG } from '../constants';
 import { generateGameTitle } from '../services/geminiService';
-import { Terminal, Gamepad2, Globe, Cpu, X, Loader2, Sparkles, RefreshCw, Rocket, Newspaper, TrendingUp, ArrowLeft } from 'lucide-react';
+import { Terminal, Gamepad2, Globe, Cpu, X, Loader2, Sparkles, RefreshCw, Rocket, Newspaper, TrendingUp, ArrowLeft, Lock } from 'lucide-react';
 
 interface Props {
   currentTrend: string;
+  companyLevel: number; // Added
   onComplete: (config: GameConfig) => void;
   onBack: () => void;
 }
 
-const GameSetup: React.FC<Props> = ({ currentTrend, onComplete, onBack }) => {
+const GameSetup: React.FC<Props> = ({ currentTrend, companyLevel, onComplete, onBack }) => {
   const [title, setTitle] = useState('');
   const [selectedThemes, setSelectedThemes] = useState<string[]>([]);
   const [genre, setGenre] = useState(GENRES[0]);
@@ -47,6 +48,9 @@ const GameSetup: React.FC<Props> = ({ currentTrend, onComplete, onBack }) => {
   };
 
   const togglePlatform = (p: string) => {
+    const requiredLevel = parseInt(Object.keys(LEVEL_CONFIG.PLATFORMS).find(lvl => LEVEL_CONFIG.PLATFORMS[parseInt(lvl)].includes(p)) || '1');
+    if (companyLevel < requiredLevel) return;
+
     if (platforms.includes(p)) {
       if (platforms.length > 1) setPlatforms(platforms.filter(item => item !== p));
     } else {
@@ -80,12 +84,21 @@ const GameSetup: React.FC<Props> = ({ currentTrend, onComplete, onBack }) => {
     }
   };
 
+  const isGenreLocked = (g: string) => {
+    const requiredLevel = parseInt(Object.keys(LEVEL_CONFIG.GENRES).find(lvl => LEVEL_CONFIG.GENRES[parseInt(lvl)].includes(g)) || '1');
+    return companyLevel < requiredLevel;
+  };
+
+  const getPlatformLockLevel = (p: string) => {
+    return parseInt(Object.keys(LEVEL_CONFIG.PLATFORMS).find(lvl => LEVEL_CONFIG.PLATFORMS[parseInt(lvl)].includes(p)) || '1');
+  };
+
   return (
     <div className="xp-window w-full max-w-3xl mx-auto shadow-2xl animate-fade-in overflow-hidden">
       <div className="xp-title-bar">
          <div className="flex items-center gap-2">
             <Terminal className="w-4 h-4" />
-            <span className="text-xs font-bold">项目立项向导 - 定义你的愿景</span>
+            <span className="text-xs font-bold">项目立项向导 - 定义你的愿景 (Lv.{companyLevel})</span>
          </div>
       </div>
 
@@ -131,7 +144,10 @@ const GameSetup: React.FC<Props> = ({ currentTrend, onComplete, onBack }) => {
                 <div className="min-w-0">
                     <label className="block text-[11px] font-black text-gray-500 uppercase tracking-widest mb-2">2. 核心玩法类型</label>
                     <select value={genre} onChange={(e) => setGenre(e.target.value)} className="w-full text-xs xp-inset px-3 py-2 font-bold bg-white text-black outline-none focus:border-blue-500">
-                        {GENRES.map(g => <option key={g} value={g}>{g}</option>)}
+                        {GENRES.map(g => {
+                            const locked = isGenreLocked(g);
+                            return <option key={g} value={g} disabled={locked}>{locked ? `🔒 ${g} (需 Lv.${Object.keys(LEVEL_CONFIG.GENRES).find(l => LEVEL_CONFIG.GENRES[parseInt(l)].includes(g))})` : g}</option>
+                        })}
                     </select>
                 </div>
                 <div className="min-w-0">
@@ -166,12 +182,18 @@ const GameSetup: React.FC<Props> = ({ currentTrend, onComplete, onBack }) => {
                 <fieldset className="border-2 border-gray-300 p-3 bg-white/50 rounded-sm">
                     <legend className="text-[10px] font-black px-2 text-gray-500 uppercase tracking-widest italic bg-[#ECE9D8] border border-gray-300 ml-2">分发渠道 (多选)</legend>
                     <div className="grid grid-cols-2 gap-2 mt-1">
-                        {PLATFORMS.map((p) => (
-                            <label key={p} className="flex items-center gap-2 cursor-pointer group">
-                                <input type="checkbox" checked={platforms.includes(p)} onChange={() => togglePlatform(p)} className="accent-[#3E9E03] w-3.5 h-3.5" />
-                                <span className="text-[11px] font-bold text-gray-700 group-hover:text-blue-700 truncate">{p}</span>
-                            </label>
-                        ))}
+                        {PLATFORMS.map((p) => {
+                            const reqLevel = getPlatformLockLevel(p);
+                            const locked = companyLevel < reqLevel;
+                            return (
+                                <label key={p} className={`flex items-center gap-2 group ${locked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
+                                    <input type="checkbox" checked={platforms.includes(p)} onChange={() => togglePlatform(p)} disabled={locked} className="accent-[#3E9E03] w-3.5 h-3.5" />
+                                    <span className="text-[11px] font-bold text-gray-700 group-hover:text-blue-700 truncate flex items-center gap-1">
+                                        {p} {locked && <Lock className="w-2.5 h-2.5" />}
+                                    </span>
+                                </label>
+                            );
+                        })}
                     </div>
                 </fieldset>
 

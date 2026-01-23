@@ -1,7 +1,8 @@
 
 import React, { useState, useMemo } from 'react';
 import { GameState, EngineeringConfig } from '../types';
-import { Cpu, X, AlertCircle, Check, DollarSign, Layout, Zap, Palette, Settings, Layers, ArrowLeft } from 'lucide-react';
+import { Cpu, X, AlertCircle, Check, DollarSign, Layout, Zap, Palette, Settings, Layers, ArrowLeft, Lock } from 'lucide-react';
+import { LEVEL_CONFIG } from '../constants';
 
 interface Props {
   gameState: GameState;
@@ -43,11 +44,15 @@ const DEP_STRATEGIES = [
 
 const EngineeringSetup: React.FC<Props> = ({ gameState, onComplete, onBack }) => {
   const [activeTab, setActiveTab] = useState(0);
-  const [engineIndex, setEngineIndex] = useState(2);
+  const [engineIndex, setEngineIndex] = useState(0); // Start with safe default
   const [aiIndex, setAiIndex] = useState(0);
   const [fidelityIndex, setFidelityIndex] = useState(1);
   const [optIndex, setOptIndex] = useState(0);
   const [depIndex, setDepIndex] = useState(1);
+
+  const getEngineLockLevel = (name: string) => {
+    return parseInt(Object.keys(LEVEL_CONFIG.ENGINES).find(lvl => LEVEL_CONFIG.ENGINES[parseInt(lvl)].includes(name)) || '1');
+  };
 
   const analysis = useMemo(() => {
     const engine = ENGINES[engineIndex];
@@ -101,7 +106,7 @@ const EngineeringSetup: React.FC<Props> = ({ gameState, onComplete, onBack }) =>
       <div className="xp-title-bar">
         <div className="flex items-center gap-2 font-bold uppercase tracking-widest">
           <Cpu className="w-4 h-4" />
-          <span className="text-xs">工程技术选型 (TECH_STACK_CONFIG)</span>
+          <span className="text-xs">工程技术选型 (TECH_STACK_CONFIG) - Lv.{gameState.companyLevel}</span>
         </div>
       </div>
 
@@ -129,18 +134,32 @@ const EngineeringSetup: React.FC<Props> = ({ gameState, onComplete, onBack }) =>
                   <h3 className="text-[11px] font-black uppercase tracking-widest border-b border-blue-200 flex-1">1. 研发引擎与表现力 (GRAPHICS_CORE)</h3>
                 </div>
                 <div className="grid grid-cols-1 gap-2">
-                  {ENGINES.map((eng, i) => (
-                    <div key={eng.name} onClick={() => setEngineIndex(i)} className={`flex items-center justify-between p-2.5 border-2 cursor-pointer transition-all ${engineIndex === i ? 'bg-white border-blue-600 shadow-md ring-2 ring-blue-100' : 'bg-gray-50/50 border-gray-300 hover:bg-white hover:border-blue-400'}`}>
-                      <div>
-                        <div className="text-xs font-black uppercase italic">{eng.name}</div>
-                        <div className="text-[10px] text-gray-700 italic">{eng.desc}</div>
+                  {ENGINES.map((eng, i) => {
+                    const reqLevel = getEngineLockLevel(eng.name);
+                    const locked = gameState.companyLevel < reqLevel;
+                    return (
+                      <div 
+                        key={eng.name} 
+                        onClick={() => !locked && setEngineIndex(i)} 
+                        className={`flex items-center justify-between p-2.5 border-2 transition-all ${locked ? 'opacity-50 cursor-not-allowed bg-gray-100 border-gray-300' : engineIndex === i ? 'bg-white border-blue-600 shadow-md ring-2 ring-blue-100 cursor-pointer' : 'bg-gray-50/50 border-gray-300 hover:bg-white hover:border-blue-400 cursor-pointer'}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          {locked && <Lock className="w-4 h-4 text-gray-500" />}
+                          <div>
+                            <div className="text-xs font-black uppercase italic flex items-center gap-1">
+                                {eng.name}
+                                {locked && <span className="text-[9px] bg-gray-200 text-gray-600 px-1 rounded">Need Lv.{reqLevel}</span>}
+                            </div>
+                            <div className="text-[10px] text-gray-700 italic">{eng.desc}</div>
+                          </div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <div className="text-xs font-black text-green-700 font-mono">¥{eng.cost.toLocaleString()}</div>
+                          <div className="text-[9px] text-gray-400 font-mono uppercase tracking-tighter">QUALITY: {eng.quality}x | SPEED: {eng.speed}x</div>
+                        </div>
                       </div>
-                      <div className="text-right flex-shrink-0">
-                        <div className="text-xs font-black text-green-700 font-mono">¥{eng.cost.toLocaleString()}</div>
-                        <div className="text-[9px] text-gray-400 font-mono uppercase tracking-tighter">QUALITY: {eng.quality}x | SPEED: {eng.speed}x</div>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </section>
 

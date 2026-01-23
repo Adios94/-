@@ -150,11 +150,12 @@ export const calculateMonthlyProgressLocal = (gameState: GameState): number => {
   const technicalSpeed = gameState.engineering?.speedMultiplier || 1.0;
   const crunchMod = gameState.isCrunching ? 2.0 : 1.0;
   const genreMod = GENRE_COMPLEXITY[gameState.config.genre] || 1.0;
+  const marketSpeedMod = gameState.activeMarketEvent?.effect.speedMultiplier || 1.0;
   
   // Morale Impact: Efficiency drops exponentially when morale is low
   const moraleMultiplier = gameState.morale < 30 ? 0.3 : gameState.morale < 70 ? 0.7 : 1.0;
 
-  let progress = (teamStats / 150) * 4 * technicalSpeed * crunchMod * techSynergy * genreMod * moraleMultiplier;
+  let progress = (teamStats / 150) * 4 * technicalSpeed * crunchMod * techSynergy * genreMod * moraleMultiplier * marketSpeedMod;
   
   return Math.max(0.1, progress); 
 };
@@ -162,6 +163,7 @@ export const calculateMonthlyProgressLocal = (gameState: GameState): number => {
 export const simulateLaunchLocal = (state: GameState): FinalResult => {
   const { quality, bugs, hype } = state.stats;
   const { config, currentTrend, price } = state;
+  const market = state.activeMarketEvent?.effect || { salesMultiplier: 1.0, hypeMultiplier: 1.0 };
   
   // 1. Quality Score (Affected by engineering and team)
   const techQualityMod = state.engineering.qualityMultiplier || 1.0;
@@ -178,10 +180,18 @@ export const simulateLaunchLocal = (state: GameState): FinalResult => {
   ));
 
   // 4. Market Potential
-  // Formula: (Quality/Price Ratio) * Hype * Trend
+  // Formula: (Quality/Price Ratio) * Hype * Trend * MarketEvents
   // Ideal price is around ¥60. High quality can justify high price.
   const priceValueRatio = (score / 60) / (price / 60);
-  const basePotential = (score * 5000 * (hype / 20) * priceValueRatio * trendBonus);
+  const basePotential = (score * 5000 * ((hype * market.hypeMultiplier) / 20) * priceValueRatio * trendBonus * market.salesMultiplier);
+
+  // 5. Reputation Gain
+  // High score gives pos rep, low score gives neg rep.
+  let reputationChange = 0;
+  if (score >= 90) reputationChange = 50;
+  else if (score >= 75) reputationChange = 25;
+  else if (score >= 60) reputationChange = 10;
+  else if (score < 40) reputationChange = -20;
 
   let achievement = { name: "初露锋芒", description: "你的第一款游戏成功上线了。" };
   if (score > 90) achievement = { name: "神作降临", description: "玩家在街头为你欢呼。" };
@@ -192,6 +202,7 @@ export const simulateLaunchLocal = (state: GameState): FinalResult => {
     basePotential,
     score,
     reviewSummary: score > 85 ? "旷世杰作" : score > 70 ? "优秀之作" : score > 50 ? "平庸之辈" : "糟糕透顶",
-    achievement
+    achievement,
+    reputationChange
   };
 };

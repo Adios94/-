@@ -4,7 +4,7 @@ import { GameState, FinalResult } from '../types';
 import { MARKETING_OPTIONS } from '../constants';
 import { simulateLaunchLocal } from '../services/gameLogic';
 import { generateGameCover, generatePlayerComments } from '../services/geminiService';
-import { Trophy, Globe, Loader2, X, PieChart, User, ThumbsUp, ThumbsDown, Disc, Rocket, Maximize2, FastForward, Play, TrendingUp, TrendingDown, Star, Bug, Flame, SkipForward } from 'lucide-react';
+import { Trophy, Globe, Loader2, X, PieChart, User, ThumbsUp, ThumbsDown, Disc, Rocket, Maximize2, FastForward, Play, TrendingUp, TrendingDown, Star, Bug, Flame, SkipForward, ArrowRight, LogOut } from 'lucide-react';
 
 interface Comment {
   user: string;
@@ -12,7 +12,7 @@ interface Comment {
   sentiment: 'pos' | 'neg' | 'neu';
 }
 
-const ResultsView: React.FC<{ gameState: GameState; onRestart: (profit: number, finalScore: number) => void }> = ({ gameState, onRestart }) => {
+const ResultsView: React.FC<{ gameState: GameState; onNextProject: (profit: number, score: number, repChange: number) => void; onHardReset: () => void }> = ({ gameState, onNextProject, onHardReset }) => {
   const [result, setResult] = useState<FinalResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
@@ -34,6 +34,8 @@ const ResultsView: React.FC<{ gameState: GameState; onRestart: (profit: number, 
       return acc * (opt?.boost || 1);
     }, 1.0);
   }, [gameState.selectedMarketing]);
+
+  const marketEventEffect = gameState.activeMarketEvent?.effect.salesMultiplier || 1.0;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -64,7 +66,7 @@ const ResultsView: React.FC<{ gameState: GameState; onRestart: (profit: number, 
     // Bug impact: High bugs = faster hype decay and lower long-tail sales
     const bugImpact = Math.max(0.2, 1.0 - (gameState.stats.bugs / 150));
     
-    const monthlyPotential = result.basePotential * decay * (currentHype / 100) * initialBoost * bugImpact;
+    const monthlyPotential = result.basePotential * decay * (currentHype / 100) * initialBoost * bugImpact * marketEventEffect;
     return Math.max(10, Math.floor(monthlyPotential * (0.8 + Math.random() * 0.4)));
   };
 
@@ -229,11 +231,18 @@ const ResultsView: React.FC<{ gameState: GameState; onRestart: (profit: number, 
                         </div>
                     </div>
                     <div className="bg-[#ECE9D8] p-10">
-                        <div className="grid grid-cols-3 gap-6 mb-10">
+                        <div className="grid grid-cols-4 gap-4 mb-10">
                              <div className="bg-white p-4 border-2 border-inset border-gray-300 shadow-inner flex flex-col items-center">
                                 <Star className="w-6 h-6 text-yellow-500 mb-2" />
                                 <div className="text-[10px] text-gray-400 font-black uppercase">综合评分</div>
                                 <div className="text-3xl font-black italic text-blue-900">{result?.score}</div>
+                             </div>
+                             <div className="bg-white p-4 border-2 border-inset border-gray-300 shadow-inner flex flex-col items-center">
+                                <Globe className="w-6 h-6 text-blue-500 mb-2" />
+                                <div className="text-[10px] text-gray-400 font-black uppercase">声望变动</div>
+                                <div className={`text-3xl font-black italic ${result?.reputationChange! >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                                    {result?.reputationChange! > 0 ? '+' : ''}{result?.reputationChange}
+                                </div>
                              </div>
                              <div className="bg-white p-4 border-2 border-inset border-gray-300 shadow-inner flex flex-col items-center">
                                 <Bug className="w-6 h-6 text-red-500 mb-2" />
@@ -242,8 +251,8 @@ const ResultsView: React.FC<{ gameState: GameState; onRestart: (profit: number, 
                              </div>
                              <div className="bg-white p-4 border-2 border-inset border-gray-300 shadow-inner flex flex-col items-center">
                                 <Flame className="w-6 h-6 text-orange-500 mb-2" />
-                                <div className="text-[10px] text-gray-400 font-black uppercase">市场转化率</div>
-                                <div className="text-3xl font-black italic text-green-700">x{marketingBoost.toFixed(1)}</div>
+                                <div className="text-[10px] text-gray-400 font-black uppercase">环境系数</div>
+                                <div className="text-3xl font-black italic text-green-700">x{marketEventEffect.toFixed(1)}</div>
                              </div>
                         </div>
 
@@ -263,10 +272,17 @@ const ResultsView: React.FC<{ gameState: GameState; onRestart: (profit: number, 
                                 <div className="text-sm font-black text-gray-500 uppercase italic">财年最终净利</div>
                                 <div className="text-4xl font-black italic text-green-700 font-mono tracking-tighter">¥{Math.floor(totalRevenue).toLocaleString()}</div>
                             </div>
-                            <button onClick={() => onRestart(totalRevenue, result?.score || 0)} className="xp-btn-green w-full py-5 text-2xl font-black shadow-2xl flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-95 transition-all">
-                                <Rocket className="w-8 h-8" />
-                                <span className="italic uppercase tracking-tighter">启动下一款爆款项目</span>
-                            </button>
+                            
+                            <div className="grid grid-cols-3 gap-4">
+                                <button onClick={() => onHardReset()} className="col-span-1 xp-btn py-5 text-sm font-black flex items-center justify-center gap-2 grayscale opacity-70 hover:opacity-100 hover:grayscale-0 transition-all">
+                                    <LogOut className="w-4 h-4" />
+                                    <span>出售公司/重置</span>
+                                </button>
+                                <button onClick={() => onNextProject(totalRevenue, result?.score || 0, result?.reputationChange || 0)} className="col-span-2 xp-btn-green py-5 text-xl font-black shadow-2xl flex items-center justify-center gap-4 hover:scale-[1.02] active:scale-95 transition-all">
+                                    <ArrowRight className="w-6 h-6" />
+                                    <span className="italic uppercase tracking-tighter">立项新作 (KEEP GOING)</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
