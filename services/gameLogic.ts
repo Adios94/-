@@ -119,6 +119,78 @@ export const generateDevEventLocal = (config: GameConfig, currentStats: any): De
           { text: "不计代价实装它", effectDescription: "大幅提升游戏热度与品质", cost: 25000, progressImpact: -8, statImpact: { quality: 15, hype: 30, morale: 10 } },
           { text: "太麻烦了，删掉", effectDescription: "保持进度表不变", cost: 0, progressImpact: 0, statImpact: { morale: -10, hype: -5 } }
         ]
+    },
+    {
+        title: "需求蔓延 (Scope Creep)",
+        type: "CONFLICT",
+        description: "制作人觉得现在的玩法还不够丰富，想要临时加入当下流行的大逃杀模式。",
+        options: [
+            { text: "听老板的，加！", effectDescription: "进度倒退，但热度上升", cost: 15000, progressImpact: -15, statImpact: { quality: 5, hype: 25, bugs: 20, morale: -15 } },
+            { text: "严词拒绝", effectDescription: "保住进度，但可能错失热点", cost: 0, progressImpact: 5, statImpact: { morale: 5, hype: -5 } }
+        ]
+    },
+    {
+        title: "病毒式营销机会",
+        type: "OTHER",
+        description: "一个热门的梗图正在网络疯传，美术组提议连夜赶制一个联动皮肤蹭热度。",
+        options: [
+            { text: "蹭热度！", effectDescription: "热度暴涨，但可能被指责不务正业", cost: 5000, progressImpact: -3, statImpact: { hype: 45, quality: -2, morale: 5 } },
+            { text: "专注打磨本体", effectDescription: "错失良机，稳扎稳打", cost: 0, progressImpact: 2, statImpact: { quality: 5 } }
+        ]
+    },
+    {
+        title: "平台合规审查",
+        type: "STRESS",
+        description: "平台方发来紧急通知，游戏内的某些美术素材可能存在版权或合规风险。",
+        options: [
+            { text: "紧急外包整改", effectDescription: "花费资金重绘，确保合规", cost: 25000, progressImpact: -5, statImpact: { quality: 2, bugs: -5 } },
+            { text: "头铁硬刚", effectDescription: "赌一把审查员看不见，风险极大", cost: 0, progressImpact: 0, statImpact: { hype: -10, morale: -5, bugs: 10 } }
+        ]
+    },
+    {
+        title: "突击捉虫周 (Bug Bash)",
+        type: "TECHNICAL",
+        description: "Bug数量已经堆积如山，测试部门建议暂停新功能开发，全员全力修Bug。",
+        options: [
+            { text: "全员修Bug", effectDescription: "Bug大幅减少，进度停滞", cost: 8000, progressImpact: -10, statImpact: { bugs: -50, quality: 15, morale: -5 } },
+            { text: "Feature First", effectDescription: "功能优先，Bug以后再说", cost: 0, progressImpact: 12, statImpact: { bugs: 30, quality: -10 } }
+        ]
+    },
+    {
+        title: "技术债爆发",
+        type: "TECHNICAL",
+        description: "新入职的程序员表示核心逻辑是'屎山代码'，每改一行都会引发三个新问题。",
+        options: [
+            { text: "花时间重构", effectDescription: "降低未来风险，牺牲当前进度", cost: 0, progressImpact: -15, statImpact: { bugs: -25, quality: 15, morale: 10 } },
+            { text: "能跑就行，别动它", effectDescription: "虽然快，但隐患无穷", cost: 0, progressImpact: 8, statImpact: { bugs: 35, quality: -20 } }
+        ]
+    },
+    {
+        title: "豪华海边团建",
+        type: "OTHER",
+        description: "团队最近气氛压抑，行政建议组织一次去海边的豪华团建放松心情。",
+        options: [
+            { text: "批准！海景房走起", effectDescription: "士气大涨，钱包大出血", cost: 60000, progressImpact: -5, statImpact: { morale: 60, quality: 5 } },
+            { text: "楼下大排档聚餐", effectDescription: "意思一下，省钱要紧", cost: 3000, progressImpact: -1, statImpact: { morale: 10 } }
+        ]
+    },
+    {
+        title: "竞品突然发布",
+        type: "COMPETITOR",
+        description: "隔壁大厂突然公布了一款玩法几乎一样的游戏，而且下周就发售！",
+        options: [
+            { text: "避其锋芒，跳票打磨", effectDescription: "延期发售，提升品质", cost: 15000, progressImpact: -25, statImpact: { quality: 25, hype: -15 } },
+            { text: "正面硬刚，提速上线", effectDescription: "进入疯狂加班模式抢占市场", cost: 0, progressImpact: 20, statImpact: { bugs: 40, morale: -40, hype: 30 } }
+        ]
+    },
+    {
+        title: "云服务商故障",
+        type: "TECHNICAL",
+        description: "云服务商的机房光缆被挖掘机挖断了，全组无法连接代码仓库。",
+        options: [
+            { text: "全员带薪休假一天", effectDescription: "进度停滞，但大家很开心", cost: 10000, progressImpact: -5, statImpact: { morale: 25 } },
+            { text: "强行本地开发", effectDescription: "效率极低，合并代码时会很痛苦", cost: 0, progressImpact: 1, statImpact: { bugs: 25, morale: -20 } }
+        ]
     }
   ];
   const template = pool[Math.floor(Math.random() * pool.length)];

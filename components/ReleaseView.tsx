@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { GameState, MarketingOption } from '../types';
 import { MARKETING_OPTIONS } from '../constants';
 import { generateGameSummary } from '../services/geminiService';
-import { DollarSign, Disc, X, Box, Loader2, Check, Zap, Megaphone, Sparkles, RefreshCw, FileText } from 'lucide-react';
+import { DollarSign, Disc, X, Box, Loader2, Check, Zap, Megaphone, Sparkles, RefreshCw, FileText, Maximize2 } from 'lucide-react';
 
 interface Props {
   gameState: GameState;
@@ -16,6 +16,7 @@ const ReleaseView: React.FC<Props> = ({ gameState, onUpdateState, onLaunch }) =>
   const [selectedChannels, setSelectedChannels] = useState<string[]>([]);
   const [localSummary, setLocalSummary] = useState(gameState.summary || "");
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [isCoverZoomed, setIsCoverZoomed] = useState(false);
 
   useEffect(() => {
     if (gameState.summary && !localSummary) {
@@ -69,7 +70,7 @@ const ReleaseView: React.FC<Props> = ({ gameState, onUpdateState, onLaunch }) =>
   const feedback = getPriceFeedback(localPrice);
 
   return (
-    <div className="xp-window w-full max-w-4xl mx-auto shadow-2xl animate-fade-in text-black">
+    <div className="xp-window w-full max-w-4xl mx-auto shadow-2xl animate-fade-in text-black relative">
         <div className="xp-title-bar">
             <div className="flex items-center gap-2">
                 <Box className="w-4 h-4" />
@@ -82,9 +83,17 @@ const ReleaseView: React.FC<Props> = ({ gameState, onUpdateState, onLaunch }) =>
             {/* Left Column: Game Info & Pricing */}
             <div className="flex-1 space-y-6 min-w-0">
                 <div className="flex items-start gap-4 p-4 bg-white border-2 border-inset border-gray-400 shadow-inner overflow-hidden">
-                    <div className="w-24 h-32 flex-shrink-0 bg-gray-100 border border-gray-300 relative overflow-hidden group">
+                    <div 
+                        className={`w-24 h-32 flex-shrink-0 bg-gray-100 border border-gray-300 relative overflow-hidden group ${gameState.coverUrl ? 'cursor-pointer' : ''}`}
+                        onClick={() => gameState.coverUrl && setIsCoverZoomed(true)}
+                    >
                         {gameState.coverUrl ? (
-                            <img src={gameState.coverUrl} alt="Cover" className="w-full h-full object-cover" />
+                            <>
+                                <img src={gameState.coverUrl} alt="Cover" className="w-full h-full object-cover transition-transform group-hover:scale-110" />
+                                <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                                    <Maximize2 className="w-6 h-6 text-white drop-shadow-md" />
+                                </div>
+                            </>
                         ) : (
                             <Disc className="w-12 h-12 text-blue-200 m-auto mt-10 animate-spin" />
                         )}
@@ -199,6 +208,13 @@ const ReleaseView: React.FC<Props> = ({ gameState, onUpdateState, onLaunch }) =>
                 </div>
             </div>
         </div>
+
+        {isCoverZoomed && gameState.coverUrl && (
+             <div onClick={() => setIsCoverZoomed(false)} className="fixed inset-0 z-[600] bg-black/95 flex items-center justify-center p-8 cursor-pointer animate-fade-in">
+                 <img src={gameState.coverUrl} className="max-h-full max-w-full border-4 border-white shadow-[0_0_100px_rgba(255,255,255,0.2)] rounded-lg" alt="Zoomed Cover" />
+                 <div className="absolute top-4 right-4 text-white/50 text-xs font-bold">点击任意处关闭 (CLICK TO CLOSE)</div>
+             </div>
+        )}
     </div>
   );
 };
